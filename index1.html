@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Annotation</title>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.3.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+<!-- Input field to enter peer ID -->
+<label for="peerIdInput">Peer ID:</label>
+<input type="text" id="peerIdInput" placeholder="Enter Peer ID">
+<button onclick="connectToPeer()">Connect to Peer</button>
+
+<br>
+
+<textarea id="annotationInput" placeholder="Enter your annotation..."></textarea>
+<button onclick="addAnnotation()">Add Annotation</button>
+
+<div id="annotationsContainer"></div>
+
+<script>
+    const peer = new Peer(); // Create a new Peer
+    let connections = []; // List to keep track of connections
+    let annotations = []; // List to store annotations
+
+    peer.on('open', (id) => {
+        console.log('My peer ID is: ' + id);
+    });
+
+    peer.on('connection', (conn) => {
+        // Handle incoming connections
+        console.log('Incoming connection from peer: ' + conn.peer);
+
+        // Add the new connection to the list
+        connections.push(conn);
+
+        // Share existing annotations with the new peer
+        conn.send({ type: 'annotations', data: annotations });
+
+        // Receive data from the new peer
+        conn.on('data', (data) => {
+            console.log('Received data from peer ' + conn.peer + ': ' + data);
+
+            if (data.type === 'annotations') {
+                // Update annotations with the received data
+                updateAnnotations(data.data);
+            } else if (data.type === 'annotation') {
+                // Update the annotations displayed on the page
+                addAnnotationElement(data);
+            }
+        });
+
+        // Handle connection close
+        conn.on('close', () => {
+            console.log('Connection with peer ' + conn.peer + ' closed');
+            // Remove the connection from the list when closed
+            connections = connections.filter((c) => c.peer !== conn.peer);
+        });
+    });
+
+    // Function to connect to a specific peer ID
+    function connectToPeer() {
+        const peerIdInput = document.getElementById('peerIdInput');
+        const targetPeerId = peerIdInput.value.trim();
+
+        if (targetPeerId !== '' && targetPeerId !== peer.id) {
+            const conn = peer.connect(targetPeerId);
+
+            // Add the new connection to the list
+            connections.push(conn);
+
+            // Receive data from the connected peer
+            conn.on('data', (data) => {
+                console.log('Received data from peer ' + conn.peer + ': ' + data);
+
+                if (data.type === 'annotations') {
+                    // Update annotations with the received data
+                    updateAnnotations(data.data);
+                } else if (data.type === 'annotation') {
+                    // Update the annotations displayed on the page
+                    addAnnotationElement(data);
+                }
+            });
+
+            // Handle connection close
+            conn.on('close', () => {
+                console.log('Connection with peer ' + conn.peer + ' closed');
+                // Remove the connection from the list when closed
+                connections = connections.filter((c) => c.peer !== conn.peer);
+            });
+        }
+
+        // Clear the input field
+        peerIdInput.value = '';
+    }
+
+    // Function to add a new annotation
+    function addAnnotation() {
+        const annotationInput = document.getElementById('annotationInput');
+        const annotationText = annotationInput.value.trim();
+
+        if (annotationText !== '') {
+            // Add the annotation locally with a timestamp
+            const annotationData = {
+                type: 'annotation',
+                connectionId: peer.id,
+                text: annotationText,
+                timestamp: new Date().toLocaleString(),
+            };
+            addAnnotationElement(annotationData);
+
+            // Broadcast the new annotation to all connected peers
+            connections.forEach((conn) => {
+                conn.send(annotationData);
+            });
+        }
+
+        // Clear the input field
+        annotationInput.value = '';
+    }
+
+    // Function to update annotations with received data
+    function updateAnnotations(data) {
+        // Update the local annotations with the received data
+        annotations = data;
+
+        // Update the annotations displayed on the page
+        updateAnnotationsDisplay();
+    }
+
+    // Function to update the annotations displayed on the page
+    function updateAnnotationsDisplay() {
+        const annotationsContainer = document.getElementById('annotationsContainer');
+        annotationsContainer.innerHTML = '';
+
+        // Add each annotation to the container
+        annotations.forEach((annotationData) => {
+            addAnnotationElement(annotationData);
+        });
+    }
+
+    // Function to add an annotation element to the page
+    function addAnnotationElement(data) {
+        const annotationsContainer = document.getElementById('annotationsContainer');
+        const p = document.createElement('p');
+        p.textContent = `[${data.connectionId}] ${data.text} (${data.timestamp})`;
+        annotationsContainer.appendChild(p);
+
+        // Add the new annotation to the local list
+        annotations.push(data);
+    }
+</script>
+
+</body>
+</html>
