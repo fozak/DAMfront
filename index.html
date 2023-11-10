@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Annotation</title>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.3.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+<!-- Input field to enter peer ID -->
+<label for="peerIdInput">Peer ID:</label>
+<input type="text" id="peerIdInput" placeholder="Enter Peer ID">
+<button onclick="connectToPeer()">Connect to Peer</button>
+
+<br>
+
+<textarea id="annotationInput" placeholder="Enter your annotation..."></textarea>
+<button onclick="addAnnotation()">Add Annotation</button>
+
+<div id="annotationsContainer"></div>
+
+<script>
+    const peer = new Peer(); // Create a new Peer
+    let connections = []; // List to keep track of connections
+    let annotations = []; // List to store annotations
+
+    peer.on('open', (id) => {
+        console.log('My peer ID is: ' + id);
+    });
+
+    peer.on('connection', (conn) => {
+        // Handle incoming connections
+        console.log('Incoming connection from peer: ' + conn.peer);
+
+        // Share existing annotations with the new peer
+        annotations.forEach((annotation) => {
+            conn.send(annotation);
+        });
+
+        // Add the new connection to the list
+        connections.push(conn);
+
+        // Receive data from the new peer
+        conn.on('data', (data) => {
+            console.log('Received data from peer ' + conn.peer + ': ' + data);
+
+            // Add the received annotation to the annotations list
+            addAnnotationElement(data);
+        });
+
+        // Handle connection close
+        conn.on('close', () => {
+            console.log('Connection with peer ' + conn.peer + ' closed');
+            // Remove the connection from the list when closed
+            connections = connections.filter((c) => c.peer !== conn.peer);
+        });
+    });
+
+    // Function to connect to a specific peer ID
+    function connectToPeer() {
+        const peerIdInput = document.getElementById('peerIdInput');
+        const targetPeerId = peerIdInput.value.trim();
+
+        if (targetPeerId !== '' && targetPeerId !== peer.id) {
+            const conn = peer.connect(targetPeerId);
+
+            // Add the new connection to the list
+            connections.push(conn);
+
+            // Receive data from the connected peer
+            conn.on('data', (data) => {
+                console.log('Received data from peer ' + conn.peer + ': ' + data);
+
+                // Add the received annotation to the annotations list
+                addAnnotationElement(data);
+            });
+
+            // Handle connection close
+            conn.on('close', () => {
+                console.log('Connection with peer ' + conn.peer + ' closed');
+                // Remove the connection from the list when closed
+                connections = connections.filter((c) => c.peer !== conn.peer);
+            });
+        }
+
+        // Clear the input field
+        peerIdInput.value = '';
+    }
+
+    // Function to add a new annotation
+    function addAnnotation() {
+        const annotationInput = document.getElementById('annotationInput');
+        const annotationText = annotationInput.value.trim();
+
+        if (annotationText !== '') {
+            // Add the annotation locally
+            addAnnotationElement(annotationText);
+
+            // Broadcast the new annotation to all connected peers
+            connections.forEach((conn) => {
+                conn.send(annotationText);
+            });
+        }
+
+        // Clear the input field
+        annotationInput.value = '';
+    }
+
+    // Function to add an annotation element to the page
+    function addAnnotationElement(text) {
+        const annotationsContainer = document.getElementById('annotationsContainer');
+        const p = document.createElement('p');
+        p.textContent = text;
+        annotationsContainer.appendChild(p);
+
+        // Store the annotation in the list
+        annotations.push(text);
+    }
+</script>
+
+</body>
+</html>
