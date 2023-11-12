@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annotation Tool</title>
+    <style>
+        /* Style for the annotation elements */
+        .annotation {
+            position: absolute;
+            border: 2px solid;
+            pointer-events: none; /* Allow clicks to go through the annotation */
+        }
+
+        .blue-annotation {
+            border-color: blue;
+        }
+
+        .red-annotation {
+            border-color: red;
+        }
+    </style>
+</head>
+<body>
+<!-- Container for the content -->
+<div id="content-container" style="position: relative;">
+    <p>Select and drag to annotate text.</p>
+    <p>Click and drag to annotate the area.</p>
+</div>
+<script>
+    let isTextSelected = false;
+    let isDragging = false;
+    let startX, startY, endX, endY;
+    let annotationCount = 0;
+    let annotations = [];
+
+    document.addEventListener('mousedown', (event) => {
+        isTextSelected = window.getSelection().toString().length > 0;
+        isDragging = true;
+        startX = event.clientX;
+        startY = event.clientY;
+    });
+
+    document.addEventListener('mousemove', (event) => {
+        if (isDragging) {
+            endX = event.clientX;
+            endY = event.clientY;
+
+            if (isTextSelected) {
+                updateAndStoreAnnotation(startX, startY, endX, endY, 'blue-annotation');
+            } else {
+                updateAndStoreAnnotation(startX, startY, endX, endY, 'red-annotation');
+            }
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        isTextSelected = false;
+        isDragging = false;
+    });
+
+    function updateAndStoreAnnotation(startX, startY, endX, endY, className) {
+        const annotationElement = createAnnotationElement(startX, startY, endX, endY, className);
+        annotations.push(annotationElement);
+        storeAnnotations();
+    }
+
+    function createAnnotationElement(startX, startY, endX, endY, className) {
+        const annotationElement = document.createElement('div');
+        annotationElement.className = 'annotation ' + className;
+        annotationElement.setAttribute('data-count', ++annotationCount);
+        annotationElement.style.left = Math.min(startX, endX) + 'px';
+        annotationElement.style.top = Math.min(startY, endY) + 'px';
+        annotationElement.style.width = Math.abs(endX - startX) + 'px';
+        annotationElement.style.height = Math.abs(endY - startY) + 'px';
+        document.body.appendChild(annotationElement);
+        return annotationElement;
+    }
+
+    function storeAnnotations() {
+        localStorage.setItem('annotations', JSON.stringify(annotations.map(serializeAnnotation)));
+    }
+
+    function serializeAnnotation(annotation) {
+        return {
+            className: annotation.className,
+            count: annotation.getAttribute('data-count'),
+            style: {
+                left: annotation.style.left,
+                top: annotation.style.top,
+                width: annotation.style.width,
+                height: annotation.style.height
+            }
+        };
+    }
+
+    // Load stored annotations on page load
+    window.addEventListener('load', () => {
+        const storedAnnotations = localStorage.getItem('annotations');
+        if (storedAnnotations) {
+            annotations = JSON.parse(storedAnnotations).map(deserializeAnnotation);
+            annotations.forEach((annotation) => document.body.appendChild(annotation));
+        }
+    });
+
+    function deserializeAnnotation(serializedAnnotation) {
+        const annotationElement = document.createElement('div');
+        annotationElement.className = 'annotation ' + serializedAnnotation.className;
+        annotationElement.setAttribute('data-count', serializedAnnotation.count);
+        annotationElement.style.left = serializedAnnotation.style.left;
+        annotationElement.style.top = serializedAnnotation.style.top;
+        annotationElement.style.width = serializedAnnotation.style.width;
+        annotationElement.style.height = serializedAnnotation.style.height;
+        return annotationElement;
+    }
+</script>
+
+</body>
+</html>
