@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annotation Tool</title>
+    <style>
+        /* Style for the annotation elements */
+        .annotation {
+            position: absolute;
+            border: 2px solid;
+            pointer-events: none; /* Allow clicks to go through the annotation */
+        }
+
+        .blue-annotation {
+            border-color: blue;
+        }
+
+        .red-annotation {
+            border-color: red;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Container for the content -->
+<div id="content-container" style="position: relative;">
+    <p>Select and drag to annotate text.</p>
+    <p>Click and drag to annotate the area.</p>
+</div>
+
+<script>
+    let isTextSelected = false;
+    let isDragging = false;
+    let startX, startY, endX, endY;
+    let annotationCount = 0;
+
+    document.addEventListener('mousedown', (e) => {
+        isTextSelected = window.getSelection().toString().length > 0;
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            endX = e.clientX;
+            endY = e.clientY;
+
+            if (isTextSelected) {
+                updateDivAnnotation(startX, startY, endX, endY, 'blue-annotation');
+            } else {
+                updateCanvasAnnotationRectangle(startX, startY, endX, endY, 'red-annotation');
+            }
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        isTextSelected = false;
+        isDragging = false;
+        finalizeAnnotation();
+    });
+
+    function updateDivAnnotation(startX, startY, endX, endY, className) {
+        const annotationElement = getOrCreateAnnotationElement(className);
+        annotationElement.style.left = Math.min(startX, endX) + 'px';
+        annotationElement.style.top = Math.min(startY, endY) + 'px';
+        annotationElement.style.width = Math.abs(endX - startX) + 'px';
+        annotationElement.style.height = Math.abs(endY - startY) + 'px';
+    }
+
+    function updateCanvasAnnotationRectangle(startX, startY, endX, endY, className) {
+        const annotationElement = getOrCreateAnnotationElement(className);
+        const ctx = annotationElement.getContext('2d');
+        const width = Math.abs(endX - startX);
+        const height = Math.abs(endY - startY);
+        annotationElement.width = width;
+        annotationElement.height = height;
+        ctx.strokeStyle = getColorFromClass(className);
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, width, height);
+        annotationElement.style.left = Math.min(startX, endX) + 'px';
+        annotationElement.style.top = Math.min(startY, endY) + 'px';
+    }
+
+    function getOrCreateAnnotationElement(className) {
+        let annotationElement = document.querySelector('.' + className);
+        if (!annotationElement) {
+            annotationElement = document.createElement('canvas');
+            annotationElement.className = 'annotation ' + className;
+            annotationElement.setAttribute('data-count', ++annotationCount);
+            document.getElementById('content-container').appendChild(annotationElement);
+        }
+        return annotationElement;
+    }
+
+    function getColorFromClass(className) {
+        if (className === 'blue-annotation') {
+            return 'blue';
+        } else if (className === 'red-annotation') {
+            return 'red';
+        }
+        return 'black';
+    }
+
+    function finalizeAnnotation() {
+        // Reset for the next annotation
+    }
+</script>
+
+</body>
+</html>
