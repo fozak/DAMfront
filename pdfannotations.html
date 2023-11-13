@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF.js Annotation Example</title>
+  <!-- Load PDF.js library -->
+  <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
+  <style>
+    #pdf-container {
+      position: relative;
+    }
+    #annotation-input {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <!-- Input for annotation text -->
+    <label for="annotation-input">Annotation Text:</label>
+    <input type="text" id="annotation-input" />
+    <button onclick="addAnnotation()">Add Annotation</button>
+  </div>
+
+  <div id="pdf-container">
+    <!-- Canvas for rendering PDF -->
+    <canvas id="pdf-render"></canvas>
+  </div>
+
+  <script>
+    // PDF.js setup
+    const pdfContainer = document.getElementById('pdf-container');
+    const annotationInput = document.getElementById('annotation-input');
+    const pdfRender = document.getElementById('pdf-render');
+    let pdfDoc = null;
+    let pageNum = 1;
+    let scale = 1.5;
+
+    // Load PDF document
+    const url = "C:\Users\i7714\DAMfront\COMPARE EN_Feature Overview.pdf";
+    const loadingTask = pdfjsLib.getDocument(url);
+    loadingTask.promise.then((doc) => {
+      pdfDoc = doc;
+      renderPage(pageNum);
+    });
+
+    // Render a specific page
+    function renderPage(num) {
+      pdfDoc.getPage(num).then((page) => {
+        const viewport = page.getViewport({ scale });
+        pdfRender.width = viewport.width;
+        pdfRender.height = viewport.height;
+
+        const renderContext = {
+          canvasContext: pdfRender.getContext('2d'),
+          viewport: viewport,
+        };
+
+        page.render(renderContext);
+      });
+    }
+
+    // Add annotation to the page
+    function addAnnotation() {
+      const annotationText = annotationInput.value.trim();
+      if (annotationText) {
+        const annotationDiv = document.createElement('div');
+        annotationDiv.textContent = annotationText;
+        annotationDiv.style.position = 'absolute';
+        annotationDiv.style.left = '50px'; // Set the desired position
+        annotationDiv.style.top = '50px';  // Set the desired position
+        pdfContainer.appendChild(annotationDiv);
+      }
+    }
+  </script>
+</body>
+</html>

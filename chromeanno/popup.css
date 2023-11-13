@@ -1,0 +1,25 @@
+/* popup.css */
+
+/* Styles for the annotation elements */
+.annotation {
+  position: absolute;
+  border: 2px solid;
+  pointer-events: none; /* Allow clicks to go through the annotation */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.blue-annotation {
+  border-color: blue;
+  background-color: rgba(0, 0, 255, 0.3); /* Semi-transparent blue background */
+  color: white;
+}
+
+.red-annotation {
+  border-color: red;
+  background-color: rgba(255, 0, 0, 0.3); /* Semi-transparent red background */
+  color: white;
+}
